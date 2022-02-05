@@ -36,8 +36,8 @@ void nftgiveaway::setlocked(bool locked)
 void nftgiveaway::registergiveaway(const name& owner_account, const name& to, const asset& amount_eos_sent, std::string memo)
 {
     check(amount_eos_sent.symbol == eos_symbol, "error: these are not the droids you are looking for.");
-    // Checks how much EOS has been sent and what the memo is.
-    // Registers the user in the buyers and mints tables. Updates the total table.
+    // Checks how much EOS has been sent.
+    // Registers the user in the players tables.
     if (to != get_self() || owner_account == get_self())
     {
         print("error: these are not the droids you are looking for.");
