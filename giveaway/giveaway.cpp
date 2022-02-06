@@ -125,6 +125,7 @@ for seed in array:
 
     if flag == True:
         # Get new position
+        flag = False
         continue
     else:
         winnerpositions.append(position)
