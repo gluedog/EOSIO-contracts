@@ -112,7 +112,6 @@ array = [18246363, 18246812, 18246444, 18246123, 18246263, 18246991, 18246223, 1
 
 maxwinners = 5
 winnerpositions = []
-counter = 0
 
 flag = False
 
@@ -130,7 +129,7 @@ for seed in array:
     else:
         winnerpositions.append(position)
 
-    if len(winnerpositions) == 5:
+    if len(winnerpositions) == maxwinners:
         break
 
 
