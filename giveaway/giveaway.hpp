@@ -11,6 +11,14 @@ class [[eosio::contract("nftgiveaway")]] nftgiveaway:public eosio::contract
     private:
     const symbol eos_symbol;
 
+    struct [[eosio::table]] winnerstb
+    {
+        name owner_account;
+        vector<uint16_t> winners;
+        uint64_t    primary_key()const { return owner_account.value; }
+    };
+    typedef eosio::multi_index< "winnertable"_n, winnerstb > winnertable;
+
     struct [[eosio::table]] players
     {
         name        owner_account;
@@ -23,7 +31,7 @@ class [[eosio::contract("nftgiveaway")]] nftgiveaway:public eosio::contract
     {
         name        key;
         bool        locked;
-        vector<uint16_t> winners;
+        //vector<uint16_t> winners;
         uint64_t primary_key()const { return key.value; } 
     };
     typedef eosio::multi_index< "totaltable"_n, globals > totaltable;
