@@ -28,7 +28,7 @@ void nftgiveaway::setlocked(bool locked)
     }
 }
 
-[[::on_notify("eosio.token::transfer")]]
+[[eosio::on_notify("eosio.token::transfer")]]
 void nftgiveaway::registergiveaway(const name& owner_account, const name& to, const asset& amount_eos_sent, std::string memo)
 {
     check(amount_eos_sent.symbol == eos_symbol, "error: these are not the droids you are looking for.");
