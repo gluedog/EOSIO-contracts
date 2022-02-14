@@ -35,6 +35,7 @@ void nftgiveaway::setlocked(bool locked)
         vector<uint16_t> winners;
         winnerstb.emplace(get_self(), [&]( auto& row) 
         {
+            row.owner_account = get_self();
             row.winners = winners;
         });
     }
@@ -145,7 +146,6 @@ void nftgiveaway::getwinners()
             flag = false;
             continue;
         }
-
         winners.push_back(newposition);
 
         if (size(winners) >= winner_limit+20) /* We'll do 20 extra, to account for any duplicates that we might find. */
