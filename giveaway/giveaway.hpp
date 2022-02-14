@@ -23,6 +23,7 @@ class [[eosio::contract("nftgiveaway")]] nftgiveaway:public eosio::contract
     {
         name        key;
         bool        locked;
+        vector<uint16_t> winners;
         uint64_t primary_key()const { return key.value; } 
     };
     typedef eosio::multi_index< "totaltable"_n, globals > totaltable;
@@ -51,7 +52,16 @@ class [[eosio::contract("nftgiveaway")]] nftgiveaway:public eosio::contract
     void registergiveaway(const name& owner_account, const name& to, const asset& amount_eos_sent, std::string memo);
 
     [[eosio::action]]
+    void populate(const name& owner_account);
+
+    [[eosio::action]]
     void setlocked(bool locked);
+
+    [[eosio::action]]
+    void getwinners();
+
+    [[eosio::action]]
+    void refund();
 
     nftgiveaway(name receiver, name code, datastream<const char *> ds):contract(receiver, code, ds), eos_symbol("EOS", 4){}
 };
