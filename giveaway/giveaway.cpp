@@ -1,7 +1,6 @@
-#include <nftgiveaway.hpp>
+  #include <nftgiveaway.hpp>
 /*
 NFT Giveaway contrak.
-
 Users send 0.1 EOS to the contract to be enrolled in the giveaway.
 */
 
@@ -24,6 +23,19 @@ void nftgiveaway::setlocked(bool locked)
         global.modify(total_it, get_self(), [&]( auto& row) 
         {
             row.locked = locked;
+        });
+    }
+
+    // Workaround for not being able to update global table.
+
+    winnertable winnerstb(get_self(), get_self().value); 
+    auto win_it = winnerstb.find(get_self().value);
+    if (win_it == winnerstb.end())
+    {
+        vector<uint16_t> winners;
+        winnerstb.emplace(get_self(), [&]( auto& row) 
+        {
+            row.winners = winners;
         });
     }
 }
@@ -139,12 +151,12 @@ void nftgiveaway::getwinners()
         if (size(winners) >= winner_limit+20) /* We'll do 20 extra, to account for any duplicates that we might find. */
             break;
     }
+    // Had to make a new table because the "totals" table couldn't be modified at contract update.
+    winnertable winnerstb(get_self(), get_self().value); 
+    auto win_it = winnerstb.find(get_self().value);
+    check(win_it != winnerstb.end(), "error: winners table is not initiated.");
 
-    totaltable global(get_self(), "totals"_n.value); 
-    auto total_it = global.find("totals"_n.value);
-    check(total_it != global.end(), "error: global table is not initiated.");
-
-    global.modify(total_it, get_self(), [&]( auto& row) 
+    winnerstb.modify(win_it, get_self(), [&]( auto& row) 
     {
         row.winners = winners;
     });
