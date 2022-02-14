@@ -3,10 +3,6 @@
 NFT Giveaway contrak.
 
 Users send 0.1 EOS to the contract to be enrolled in the giveaway.
-
-We will use current_blocktime for each on_notify tx to create the seed for the pseudo RNG.
-
-We will have a locked and unlocked variable which determines the time limit when users can enroll in the giveaway.
 */
 
 void nftgiveaway::setlocked(bool locked)
@@ -32,17 +28,21 @@ void nftgiveaway::setlocked(bool locked)
     }
 }
 
-[[eosio::on_notify("eosio.token::transfer")]]
+[[::on_notify("eosio.token::transfer")]]
 void nftgiveaway::registergiveaway(const name& owner_account, const name& to, const asset& amount_eos_sent, std::string memo)
 {
     check(amount_eos_sent.symbol == eos_symbol, "error: these are not the droids you are looking for.");
-    // Checks how much EOS has been sent.
-    // Registers the user in the players tables.
     if (to != get_self() || owner_account == get_self())
     {
         print("error: these are not the droids you are looking for.");
         return;
     }
+
+    totaltable global(get_self(), "totals"_n.value); 
+    auto total_it = global.find("totals"_n.value);
+    check(total_it != global.end(), "error: global table is not initiated.");
+
+    check(total_it->locked == false, "error: the giveaway registration has ended. winners will be decided soon!");
 
     uint16_t giveaway_entry_price = 1000; // 0.1 EOS
 
@@ -51,9 +51,6 @@ void nftgiveaway::registergiveaway(const name& owner_account, const name& to, co
     playertable players(get_self(), get_self().value);
     auto players_it = players.find(owner_account.value);
     check(players_it == players.end(), "error: account has already been registered in the giveaway."); 
-
-    eosio::print_f("User has sent: [%] EOS \n",amount_eos_sent.amount);
-    eosio::print_f("Entry Price:   [%]\n",giveaway_entry_price);
 
     // Update the table(s):
     uint32_t now = current_time_point().sec_since_epoch();
@@ -74,74 +71,111 @@ void nftgiveaway::registergiveaway(const name& owner_account, const name& to, co
     }
 }
 
+void nftgiveaway::refund()
+{
+    require_auth(get_self());
 
-/*
-TODO:
-Finish getwinners function.
-Add the locked variable into play to stop registrations once the contract is locked.
+    playertable players(get_self(), get_self().value);
 
-*/
+    asset refund;
+    refund.amount = 1000;
+    refund.symbol = symbol("EOS", 4);
 
-/*
+    auto current_itr = players.begin();
+    auto end_itr     = players.end();
+
+    while (current_itr != end_itr)
+    {
+        eosio::print_f("Refunding: [%]\n",current_itr->owner_account);
+        nftgiveaway::inline_transfereos(get_self(), current_itr->owner_account, refund, "Sending refund for the NFT giveaway entry.");
+        ++ current_itr;
+    }
+}
 
 void nftgiveaway::getwinners()
-{
-    staketable staked(get_self(), get_self().value);
+{// To make everything as random as possible, we'll have to do a telegram countdown and involve the users from the channel in determining the moment this function is called.
+    require_auth(get_self());
 
-    auto begin_itr = staked.begin();
-    auto end_itr = staked.end();
+    uint8_t  winner_limit = 25;
+    uint16_t player_count = 0;
 
-    uint16_t current_iteration = 0;
-    while (begin_itr != end_itr)
+    vector<uint16_t> winners;
+    vector<uint64_t> seeds;
+
+    playertable players(get_self(), get_self().value);
+
+    auto current_itr = players.begin();
+    auto end_itr     = players.end();
+
+    while (current_itr != end_itr)
     {
-        eosio::print_f("Checking staking information for: [%]\n",begin_itr->owner_account);
-        staked.modify(begin_itr, get_self(), [&]( auto& row ) 
-        { // Modify the table entries to increase user's "unclaimed_amount"
-            if (row.hub_staked_amount.amount > 0)
-            {
-            }
-        });
-        ++ begin_itr;
-        ++ current_iteration;
+        eosio::print_f("Checking seed from: [%]\n",current_itr->owner_account);
+        seeds.push_back(current_itr->seed);
+        ++ player_count;
+        ++ current_itr;
     }
 
-*/    
+    eosio::print_f("Finished loop.\n");
+    eosio::print_f("We have: [%] max players\n",player_count);
+    eosio::print_f("Seeds Vector size: [%]\n",size(seeds));
 
-/*
-array = [18246363, 18246812, 18246444, 18246123, 18246263, 18246991, 18246223, 18246483, 18246618, 18246231, 1824298]
+    bool flag = false;
 
-maxwinners = 5
-winnerpositions = []
+    uint32_t now = current_time_point().sec_since_epoch();
 
-flag = False
+    for (auto it = seeds.begin(); it != seeds.end(); it++)
+    {
+        uint16_t newposition = (now + *it)%size(seeds);
 
-for seed in array:
-    position = seed%len(array)
+        for (auto winner_it = winners.begin(); winner_it != winners.end(); ++winner_it)
+        {
+            if (newposition == *winner_it)
+            {
+                flag = true;
+                break;
+            }
+        }
 
-    for winner in winnerpositions:
-        if position == winner:
-            flag = True
+        if (flag == true)
+        {
+            flag = false;
+            continue;
+        }
 
-    if flag == True:
-        # Get new position
-        flag = False
-        continue
-    else:
-        winnerpositions.append(position)
+        winners.push_back(newposition);
 
-    if len(winnerpositions) == maxwinners:
-        break
+        if (size(winners) >= winner_limit+20) /* We'll do 20 extra, to account for any duplicates that we might find. */
+            break;
+    }
 
+    totaltable global(get_self(), "totals"_n.value); 
+    auto total_it = global.find("totals"_n.value);
+    check(total_it != global.end(), "error: global table is not initiated.");
 
-print(winnerpositions)
+    global.modify(total_it, get_self(), [&]( auto& row) 
+    {
+        row.winners = winners;
+    });
 
-        Get all the seeds from the users.
-        Just use those to seed the RNG.
-        Refund all the users their 0.1 EOS.
+    for (auto winner_it = winners.begin(); winner_it != winners.end(); ++winner_it)
+    {
+        eosio::print_f("winnerposition: [%]\n",*winner_it);
+    }
+}
 
-        So basically what we have, is the current blocktime at which everyone sent 0.1 EOS, so we can iterate over those to get some seeds.
-        We also have the blocktime at which we call getwinners().
-        So we need this function to pick 25 winners out of.... however many there are in total.
-        So we can do 25 loops, that each select a number between 1 and max_players.
-        The algorithm would be pseudo_random_seed % max_players. Check for duplicates, if duplicate, add another step.
-    */
+/* Debug function */
+void nftgiveaway::populate(const name& owner_account)
+{
+    require_auth(get_self());
+
+    playertable players(get_self(), get_self().value);
+    auto players_it = players.find(owner_account.value);
+    check(players_it == players.end(), "error: account has already been registered in the giveaway."); 
+
+    uint32_t now = current_time_point().sec_since_epoch();
+    players.emplace(get_self(), [&](auto& row) 
+    {
+        row.owner_account = owner_account;
+        row.seed = now;
+    });
+}
