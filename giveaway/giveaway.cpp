@@ -62,7 +62,6 @@ void nftgiveaway::registergiveaway(const name& owner_account, const name& to, co
 
     uint32_t refund_amount = amount_eos_sent.amount - giveaway_entry_price;
 
-    eosio::print_f("Refund for user: [%]\n",refund_amount);
     if (refund_amount > 0)
     {
         asset refund_asset = amount_eos_sent;
@@ -86,7 +85,6 @@ void nftgiveaway::refund()
 
     while (current_itr != end_itr)
     {
-        eosio::print_f("Refunding: [%]\n",current_itr->owner_account);
         nftgiveaway::inline_transfereos(get_self(), current_itr->owner_account, refund, "Sending refund for the NFT giveaway entry.");
         ++ current_itr;
     }
@@ -109,20 +107,14 @@ void nftgiveaway::getwinners()
 
     while (current_itr != end_itr)
     {
-        eosio::print_f("Checking seed from: [%]\n",current_itr->owner_account);
         seeds.push_back(current_itr->seed);
         ++ player_count;
         ++ current_itr;
     }
-
-    eosio::print_f("Finished loop.\n");
-    eosio::print_f("We have: [%] max players\n",player_count);
-    eosio::print_f("Seeds Vector size: [%]\n",size(seeds));
-
-    bool flag = false;
-
+   
     uint32_t now = current_time_point().sec_since_epoch();
-
+    
+    bool flag = false;
     for (auto it = seeds.begin(); it != seeds.end(); it++)
     {
         uint16_t newposition = (now + *it)%size(seeds);
@@ -156,11 +148,6 @@ void nftgiveaway::getwinners()
     {
         row.winners = winners;
     });
-
-    for (auto winner_it = winners.begin(); winner_it != winners.end(); ++winner_it)
-    {
-        eosio::print_f("winnerposition: [%]\n",*winner_it);
-    }
 }
 
 /* Debug function */
