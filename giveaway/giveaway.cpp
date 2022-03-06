@@ -57,9 +57,9 @@ void nftgiveaway::registergiveaway(const name& owner_account, const name& to, co
 
     check(total_it->locked == false, "error: the giveaway registration has ended. winners will be decided soon!");
 
-    uint16_t giveaway_entry_price = 1000; // 0.1 EOS
+    uint16_t giveaway_entry_price = 15000; // 1.5 EOS
 
-    check(amount_eos_sent.amount >= giveaway_entry_price, "error: you must send 0.1 EOS to participate in the giveaway.");
+    check(amount_eos_sent.amount >= giveaway_entry_price, "error: you must send 1.5 EOS to participate in the giveaway.");
 
     playertable players(get_self(), get_self().value);
     auto players_it = players.find(owner_account.value);
@@ -100,6 +100,31 @@ void nftgiveaway::refund()
     {
         nftgiveaway::inline_transfereos(get_self(), current_itr->owner_account, refund, "Sending refund for the NFT giveaway entry.");
         ++ current_itr;
+    }
+}
+
+void nftgiveaway::cleartables()
+{
+    require_auth(get_self());
+    playertable players(get_self(), get_self().value);
+    auto itr = players.begin();
+    while (itr != players.end())
+    {
+        itr = players.erase(itr);
+    }
+
+    winnertable winnerstb(get_self(), get_self().value); 
+    auto itr2 = winnerstb.begin();
+    while (itr2 != winnerstb.end())
+    {
+        itr2 = winnerstb.erase(itr2);
+    }
+
+    totaltable global(get_self(), "totals"_n.value); 
+    auto itr3 = global.begin();
+    while (itr3 != global.end())
+    {
+        itr3 = global.erase(itr3);
     }
 }
 
