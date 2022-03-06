@@ -1,4 +1,4 @@
-  #include <nftgiveaway.hpp>
+ #include <nftgiveaway.hpp>
 /*
 NFT Giveaway contrak.
 Users send 0.1 EOS to the contract to be enrolled in the giveaway.
