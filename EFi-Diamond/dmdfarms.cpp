@@ -2,6 +2,7 @@
 /*
 
 The Demond Yeld Farms.
+by Gluedog
 
 Setpool sets the pools with "is_active = 0". 
 Then we have another function: activatepool(), and when that is called, the halvings and mining start time are also set.
