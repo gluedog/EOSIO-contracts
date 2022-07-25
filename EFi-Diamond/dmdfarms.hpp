@@ -171,7 +171,7 @@ class [[eosio::contract("dmdfarms")]] dmdfarms:public eosio::contract
     [[eosio::action]]
     void setminlptoke(uint16_t pool_id, uint64_t min_lp_tokens);
     [[eosio::action]]
-    void setlastrewrd(uint16_t pool_id);
+    void setlastrewrd(uint16_t pool_id, uint32_t timestamp);
     [[eosio::action]]
     void activatepool(uint16_t pool_id, bool init_mining_timestamps);
     [[eosio::action]]
