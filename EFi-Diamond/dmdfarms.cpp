@@ -2,7 +2,6 @@
 /*
 
 The Demond Yeld Farms.
-by Gluedog
 
 Setpool sets the pools with "is_active = 0". 
 Then we have another function: activatepool(), and when that is called, the halvings and mining start time are also set.
@@ -116,7 +115,9 @@ void dmdfarms::setminlptoke(uint16_t pool_id, uint64_t min_lp_tokens)
     {   row.minimum_lp_tokens = min_lp_tokens; });
 }
 
-void dmdfarms::setlastrewrd(uint16_t pool_id)
+/* If timestamp == 0, sets last reward time to now */
+/* Should only use for bugfix purposes */
+void dmdfarms::setlastrewrd(uint16_t pool_id, uint32_t timestamp)
 {   require_auth(get_self());
 
     pooltable pool_stats(get_self(), pool_id);
@@ -124,8 +125,18 @@ void dmdfarms::setlastrewrd(uint16_t pool_id)
     check(pool_it != pool_stats.end(), "error: pool_id not found.");
 
     uint32_t now = current_time_point().sec_since_epoch();
-    pool_stats.modify(pool_it, get_self(),[&]( auto& row) 
-    {   row.last_reward_time = now; });
+
+    if (timestamp == 0)
+    {
+        pool_stats.modify(pool_it, get_self(),[&]( auto& row) 
+        {   row.last_reward_time = now; });
+    }
+    else
+    {
+        check(now >= timestamp, "Can't set a date from the future!");
+        pool_stats.modify(pool_it, get_self(),[&]( auto& row) 
+        {   row.last_reward_time = timestamp; });
+    }
 }
 
 void dmdfarms::activatepool(uint16_t pool_id, bool init_mining_timestamps)
@@ -230,17 +241,21 @@ void dmdfarms::issue(uint16_t pool_id)
     if (now >= pool_it->halving3_deadline)  {  mining_rate_handicap = 8;  }
     if (now >= pool_it->halving4_deadline)  {  mining_rate_handicap = 16; }
 
-    uint16_t issue_precision = 10;
+    uint16_t issue_precision = 10; /* Just another division to make our pool_it->dmd_issue_frequency more precise and configurable */
+    uint16_t actual_halving_handicap = issue_precision * mining_rate_handicap;
+
+    uint32_t float_rounds = 10000; /* Need to multiply by 10k this and then divide by 10k to avoid rounding errors to zero */
 
     /* How many coins are issued every second. */
-    uint64_t augmented_dmd_issue_frequency = pool_it->dmd_issue_frequency/ issue_precision / mining_rate_handicap;
+    uint64_t augmented_dmd_issue_frequency = pool_it->dmd_issue_frequency * float_rounds / actual_halving_handicap;
+    eosio::print_f("augmented_dmd_issue_frequency: [%] \n",augmented_dmd_issue_frequency);
 
     /* How many seconds have passed until now and last_reward_time */
     uint32_t seconds_passed = now - pool_it->last_reward_time; 
-    //eosio::print_f("Seconds passed since last issue(): [%] \n",seconds_passed);
+    eosio::print_f("Seconds passed since last issue(): [%] \n",seconds_passed);
 
     /* Determine how much total DMD reward should be issued in this transaction/cycle/block */
-    uint64_t total_dmd_released = seconds_passed * augmented_dmd_issue_frequency;
+    uint64_t total_dmd_released = seconds_passed * augmented_dmd_issue_frequency / float_rounds; /* Now we divide everything by float_rounds and get the proper number */
     /* Check if there's enough DMD left in the pool */
     if (total_dmd_released > pool_it->dmd_mine_qty_remaining)
     {   /* Overflow check */
@@ -262,8 +277,8 @@ void dmdfarms::issue(uint16_t pool_id)
         pool_total_lptokens += get_asset_amount(current_iteration->owner_account, pool_it->box_asset_symbol).amount;
         ++current_iteration; }
 
-    //eosio::print_f("Finished counting total lptokens for this issue cycle.\n");
-    //eosio::print_f("Pool_total_lptokens: [%]\n",pool_total_lptokens);
+    eosio::print_f("Finished counting total lptokens for this issue cycle.\n");
+    eosio::print_f("Pool_total_lptokens: [%]\n",pool_total_lptokens);
     /* Record the pool_total_lptokens in the pool_id table. */
     pool_stats.modify(pool_it, get_self(),[&]( auto& row) 
     {  row.pool_total_lptokens = pool_total_lptokens;  });
@@ -276,7 +291,7 @@ void dmdfarms::issue(uint16_t pool_id)
     /* Loop again and give every user their proper rewards */
     while (current_iteration != end_itr)
     {
-        //eosio::print_f("Checking lptoken information for: [%]\n",current_iteration->owner_account);
+        eosio::print_f("Checking lptoken information for: [%]\n",current_iteration->owner_account);
         /* Check the Defibox LP tables to see how many LPTokens each user has */
         asset user_box_lptoken = get_asset_amount(current_iteration->owner_account, pool_it->box_asset_symbol);
         /* Must definitely test these. */
@@ -305,10 +320,10 @@ void dmdfarms::issue(uint16_t pool_id)
 
             if (user_has_nft(current_iteration->owner_account, schema))
             {   /* It means the user has at least 1 correct NFT for HUB, DOP or DMD. Increase his unclaimed_rewards by 10% */
-                //eosio::print_f("Detected valid NFT for user: [%]\n",current_iteration->owner_account);
-                //eosio::print_f("Previous unclaimed: [%]\n",dmd_unclaimed_amount);
-                dmd_unclaimed_amount += dmd_unclaimed_amount*10/100; /* Should be +10% increase. Need to test. */
-                //eosio::print_f("Unclaimed after bonus: [%]\n",dmd_unclaimed_amount);
+                eosio::print_f("Detected valid NFT for user: [%]\n",current_iteration->owner_account);
+                eosio::print_f("Previous unclaimed: [%]\n",dmd_unclaimed_amount);
+                dmd_unclaimed_amount += dmd_unclaimed_amount*10/100; /* +10% Increase */
+                eosio::print_f("Unclaimed after bonus: [%]\n",dmd_unclaimed_amount);
             }
         }
         /* For HUB/DOP/DMD pools (so 0, 1, 2 respectively, we will scan for collection "nft.efi" and the NFT schema, "golden.hub", "golden.dop" or "golden.dmd", respectively.) */
