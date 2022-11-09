@@ -11,6 +11,8 @@ class [[eosio::contract("swapcontrak")]] swapcontrak:public eosio::contract
     private:
     const symbol dop_symbol;
     const symbol dmd_symbol;
+    const symbol dop2_symbol;
+    const symbol dmd2_symbol;
 
     struct [[eosio::table]] userwhitelist
     {
@@ -79,19 +81,19 @@ class [[eosio::contract("swapcontrak")]] swapcontrak:public eosio::contract
     /* Indirectly callable functions: */
     void registerswapdop( const name& owner_account, const name& to, const asset& swap_quantity_dop, std::string memo);
     void registerswapdmd( const name& owner_account, const name& to, const asset& swap_quantity_dmd, std::string memo);
-
-    /* User/Admin direct-callable functions: */
-    [[eosio::action]]
     void addwhitelistdmd(const name& owner_account, const asset& whitelist_remaining_dmd, const asset& whitelist_claimed_dmd);
     void addwhitelistdop(const name& owner_account, const asset& whitelist_remaining_dop, const asset& whitelist_claimed_dop);
+    
+    /* User/Admin direct-callable functions: */
     [[eosio::action]]
-    void set(const asset& initial_hub, const asset& initial_dop, const asset& initial_dmd, uint8_t initial_bonus);
+    void set(const asset& initial_dop, const asset& initial_dmd, uint8_t initial_bonus);
     [[eosio::action]]
     void setbonus(uint8_t bonus);
     [[eosio::action]]
     void setlocked(bool locked);
+    [[eosio::action]]
+    void populate();
 
-    swapcontrak(name receiver, name code, datastream<const char *> ds):contract(receiver, code, ds), 
-                                     hub_symbol("HUB", 4), dop_symbol("DOP", 8), dmd_symbol("DMD", 10){}
+    swapcontrak(name receiver, name code, datastream<const char *> ds):contract(receiver, code, ds), dop_symbol("DOP", 8), dmd_symbol("DMD", 10), dop2_symbol("DOP", 4), dmd2_symbol("DMD", 4){}
 };
 
