@@ -1,6 +1,7 @@
 #include <swap.hpp>
-/* f 
-This is the EFi V2 Swap Contract.
+/* 
+This is the EFi V2 Swap2 Contract.
+by gluedog
 */
 
 
@@ -273,7 +274,6 @@ void swapcontrak::populate()
     addwhitelistdop("uirbnrjyc2v2"_n, asset(1669230,   dop2_symbol), asset(0, dop2_symbol)) ;
     addwhitelistdop("vrs5nhk2t4e4"_n, asset(4000097,   dop2_symbol), asset(0, dop2_symbol)) ;
     addwhitelistdop("wangmingwang"_n, asset(1927405,   dop2_symbol), asset(0, dop2_symbol)) ;
-    addwhitelistdop("whatisaname1"_n, asset(169757883, dop2_symbol), asset(0, dop2_symbol)) ;
     addwhitelistdop("xiaoyezi5555"_n, asset(602920000, dop2_symbol), asset(0, dop2_symbol)) ;
     addwhitelistdop("xiaoyuxiaoyu"_n, asset(50000000,  dop2_symbol), asset(0, dop2_symbol)) ;
     addwhitelistdop("yangyijun123"_n, asset(6000000,   dop2_symbol), asset(0, dop2_symbol)) ;
@@ -302,16 +302,16 @@ void swapcontrak::registerswapdop(const name& owner_account, const name& to, con
     check(total_it->locked == false,"error: the EFi V2 swap is currently locked (inactive).");
 
     asset converted_swap_qty  = swap_quantity_dop;
-    converted_swap_qty.amount = swap_quantity_dop.amount/1000000;
+    converted_swap_qty.amount = swap_quantity_dop.amount/10000;
     converted_swap_qty.symbol = symbol("DOP", 4);
 
     /* <------------> */
     /* <------------> */
     /* Here we should check and see if the user is found in the whitelist and if his remaining quantity is greater than or equal to quantity sent */
-    entrytable userwhitelist( get_self(), get_self().value ); 
+    entrytable userwhitelist(get_self(), owner_account.value); 
     auto whitelist_it = userwhitelist.find( owner_account.value );
     check(whitelist_it != userwhitelist.end(), "error: user is not whitelisted.");
-    check(whitelist_it->whitelist_remaining_dop.amount >= converted_swap_qty.amount, "error: swap quantity would exceed maximum allowed for user.");
+    check(converted_swap_qty.amount <= whitelist_it->whitelist_remaining_dop.amount, "error: swap quantity would exceed maximum allowed for user.");
     /* <------------> */
     /* <------------> */
 
@@ -374,10 +374,10 @@ void swapcontrak::registerswapdmd(const name& owner_account, const name& to, con
     /* <------------> */
     /* <------------> */
     /* Here we should check and see if the user is found in the whitelist and if his remaining quantity is greater than or equal to quantity sent */
-    entrytable userwhitelist( get_self(), get_self().value ); 
+    entrytable userwhitelist(get_self(), owner_account.value); 
     auto whitelist_it = userwhitelist.find( owner_account.value );
     check(whitelist_it != userwhitelist.end(), "error: user is not whitelisted.");
-    check(whitelist_it->whitelist_remaining_dmd.amount >= converted_swap_qty.amount, "error: swap quantity would exceed maximum allowed for user.");
+    check(converted_swap_qty.amount <= whitelist_it->whitelist_remaining_dmd.amount, "error: swap quantity would exceed maximum allowed for user.");
     /* <------------> */
     /* <------------> */
 
