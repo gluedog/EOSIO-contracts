@@ -96,4 +96,3 @@ class [[eosio::contract("swapcontrak")]] swapcontrak:public eosio::contract
 
     swapcontrak(name receiver, name code, datastream<const char *> ds):contract(receiver, code, ds), dop_symbol("DOP", 8), dmd_symbol("DMD", 10), dop2_symbol("DOP", 4), dmd2_symbol("DMD", 4){}
 };
-
